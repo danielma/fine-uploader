@@ -71,12 +71,11 @@ qq.ImageValidation = function(blob, log) {
      * @returns {String || undefined} The name of the failing limit.  Undefined if no failing limits.
      */
     function getFailingLimit(limits, dimensions) {
-        var failingLimit;
+        var failingLimit, limitMatcher;
 
         qq.each(limits, function(limitName, limitValue) {
-            if (limitValue > 0) {
-                var limitMatcher = /(max|min)(Width|Height)/.exec(limitName),
-                    dimensionPropName = limitMatcher[2].charAt(0).toLowerCase() + limitMatcher[2].slice(1),
+            if (limitValue > 0 && (limitMatcher = /(max|min)(Width|Height)/.exec(limitName))) {
+                var dimensionPropName = limitMatcher[2].charAt(0).toLowerCase() + limitMatcher[2].slice(1),
                     actualValue = dimensions[dimensionPropName];
 
                 /*jshint -W015*/
@@ -100,6 +99,25 @@ qq.ImageValidation = function(blob, log) {
         return failingLimit;
     }
 
+    function getRatioIsAcceptable(limits, dimensions) {
+        if (null === (limits.ratioVariance && limits.ratioDesiredWidth && limits.ratioDesiredHeight)) {
+            // fail if any are null or not set
+            return true;
+        }
+
+        var actualRatio = dimensions.width / dimensions.height,
+            desiredRatio = limits.ratioDesiredWidth / limits.ratioDesiredHeight,
+            acceptableVariance = (limits.ratioDesiredWidth / limits.ratioDesiredHeight) * limits.ratioVariance,
+            cielingRatio = desiredRatio + acceptableVariance,
+            floorRatio = desiredRatio - acceptableVariance;
+
+        if (actualRatio > floorRatio && actualRatio < cielingRatio) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     /**
      * Validate the associated blob.
      *
@@ -116,9 +134,13 @@ qq.ImageValidation = function(blob, log) {
         if (hasNonZeroLimits(limits)) {
             getWidthHeight().then(function(dimensions) {
                 var failingLimit = getFailingLimit(limits, dimensions);
+                var ratioIsAcceptable = getRatioIsAcceptable(limits, dimensions);
 
                 if (failingLimit) {
                     validationEffort.failure(failingLimit);
+                }
+                else if (ratioIsAcceptable === false) {
+                    validationEffort.failure("ratio");
                 }
                 else {
                     validationEffort.success();

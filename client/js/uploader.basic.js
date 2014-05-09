@@ -77,6 +77,7 @@
                 maxWidthImageError: "Image is too wide.",
                 minHeightImageError: "Image is not tall enough.",
                 minWidthImageError: "Image is not wide enough.",
+                ratioImageError: "Image is not the correct aspect ratio.",
                 retryFailTooManyItems: "Retry failed - you have reached your file limit.",
                 onLeave: "The files are being uploaded, if you leave now the upload will be canceled."
             },
